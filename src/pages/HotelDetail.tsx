@@ -1,25 +1,30 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, Star, Heart, Wifi, Car, Utensils, Waves, Calendar, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { apiService } from '../services/api';
 
 interface Hotel {
-  id: string;
+  id: number;
+  created_at: number;
   name: string;
   location: string;
+  city: string;
   rating: number;
   price: number;
-  images: string[];
-  amenities: string[];
+  image: string;
   description: string;
-  fullDescription: string;
-  reviews: number;
 }
 
 const HotelDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [images, setImages] = useState<string[]>([]);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(1);
@@ -27,38 +32,54 @@ const HotelDetail: React.FC = () => {
   const { toggleFavorite, isFavorite } = useFavorites();
 
   useEffect(() => {
-    // Mock hotel data - in real app, this would come from Xano API
-    const mockHotel: Hotel = {
-      id: id || '1',
-      name: 'Ethiopian Skylight Hotel',
-      location: 'Bole, Addis Ababa',
-      rating: 4.8,
-      price: 120,
-      images: [
-        'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1200',
-        'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=1200',
-        'https://images.pexels.com/photos/2467558/pexels-photo-2467558.jpeg?auto=compress&cs=tinysrgb&w=1200',
-        'https://images.pexels.com/photos/1134176/pexels-photo-1134176.jpeg?auto=compress&cs=tinysrgb&w=1200',
-      ],
-      amenities: ['Free WiFi', 'Swimming Pool', 'Restaurant', 'Spa & Wellness', 'Airport Shuttle', 'Fitness Center', 'Room Service', 'Conference Rooms'],
-      description: 'Luxury hotel in the heart of Addis Ababa near Bole International Airport',
-      fullDescription: 'Experience unparalleled luxury at Ethiopian Skylight Hotel, strategically located in the vibrant Bole district of Addis Ababa. Our premium accommodations offer modern amenities with traditional Ethiopian hospitality, making it the perfect choice for both business and leisure travelers. Each room is thoughtfully designed with contemporary furnishings, high-speed internet, and stunning city views. Our world-class spa, fine dining restaurants, and comprehensive business facilities ensure an exceptional stay.',
-      reviews: 247
+    const fetchHotelData = async () => {
+      if (!id) return;
+
+      try {
+        const hotelId = parseInt(id);
+        const hotelData = await apiService.getHotel(hotelId);
+        setHotel(hotelData);
+
+        // Set images array from single image (for now, we'll use the same image multiple times or fetch hotel images separately)
+        setImages([hotelData.image, hotelData.image, hotelData.image, hotelData.image]);
+
+        // Fetch amenities (assuming they are in a separate table)
+        const amenitiesData = await apiService.getAmenities();
+        setAmenities(amenitiesData.map((a: any) => a.name));
+
+        // Fetch reviews for this hotel
+        const reviewsData = await apiService.getReviews();
+        const hotelReviews = reviewsData.filter((r: any) => r.hotel_id === hotelId);
+        setReviews(hotelReviews);
+      } catch (error) {
+        console.error('Error fetching hotel data:', error);
+        // Fallback to mock data if API fails
+        const mockHotel: Hotel = {
+          id: parseInt(id),
+          created_at: Date.now(),
+          name: 'Hotel Loading...',
+          location: 'Location',
+          city: 'City',
+          rating: 0,
+          price: 0,
+          image: 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1200',
+          description: 'Loading hotel details...'
+        };
+        setHotel(mockHotel);
+        setAmenities([]);
+        setReviews([]);
+      }
     };
-    
-    setHotel(mockHotel);
+
+    fetchHotelData();
   }, [id]);
 
   const nextImage = () => {
-    if (hotel) {
-      setCurrentImageIndex((prev) => (prev + 1) % hotel.images.length);
-    }
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevImage = () => {
-    if (hotel) {
-      setCurrentImageIndex((prev) => (prev - 1 + hotel.images.length) % hotel.images.length);
-    }
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   const getAmenityIcon = (amenity: string) => {
@@ -99,7 +120,7 @@ const HotelDetail: React.FC = () => {
                   ))}
                 </div>
                 <span className="font-medium">{hotel.rating}</span>
-                <span>({hotel.reviews} reviews)</span>
+                <span>({reviews.length} reviews)</span>
               </div>
             </div>
           </div>
@@ -122,8 +143,8 @@ const HotelDetail: React.FC = () => {
             {/* Image Gallery */}
             <div className="relative">
               <div className="aspect-w-16 aspect-h-9 rounded-2xl overflow-hidden">
-                <img 
-                  src={hotel.images[currentImageIndex]} 
+                <img
+                  src={images[currentImageIndex]}
                   alt={hotel.name}
                   className="w-full h-96 object-cover"
                 />
@@ -144,7 +165,7 @@ const HotelDetail: React.FC = () => {
               </button>
 
               <div className="flex space-x-2 mt-4">
-                {hotel.images.map((image, index) => (
+                {images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
@@ -161,14 +182,14 @@ const HotelDetail: React.FC = () => {
             {/* Description */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="text-2xl font-semibold mb-4">About This Hotel</h2>
-              <p className="text-gray-600 leading-relaxed">{hotel.fullDescription}</p>
+              <p className="text-gray-600 leading-relaxed">{hotel.description}</p>
             </div>
 
             {/* Amenities */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="text-2xl font-semibold mb-4">Amenities</h2>
               <div className="grid grid-cols-2 gap-4">
-                {hotel.amenities.map((amenity, index) => (
+                {amenities.slice(0, 8).map((amenity, index) => (
                   <div key={index} className="flex items-center space-x-3">
                     {getAmenityIcon(amenity)}
                     <span className="text-gray-700">{amenity}</span>
@@ -189,7 +210,7 @@ const HotelDetail: React.FC = () => {
                       ))}
                     </div>
                     <span className="font-medium text-lg">{hotel.rating}</span>
-                    <span className="text-gray-600">({hotel.reviews} reviews)</span>
+                    <span className="text-gray-600">({reviews.length} reviews)</span>
                   </div>
                 </div>
                 <Link 

@@ -1,73 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Star, ArrowLeft, User, ThumbsUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/api';
 
 interface Review {
-  id: string;
-  userName: string;
+  id: number;
   rating: number;
   comment: string;
-  date: string;
-  helpful: number;
+  created_at: number;
+  user_id: number;
+  hotel_id: number;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+interface Hotel {
+  id: number;
+  name: string;
+  rating: number;
 }
 
 const Reviews: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated } = useAuth();
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: '1',
-      userName: 'Sarah M.',
-      rating: 5,
-      comment: 'Absolutely amazing experience! The staff was incredibly welcoming and the location is perfect. The traditional coffee ceremony was a highlight of my stay.',
-      date: '2024-01-15',
-      helpful: 12
-    },
-    {
-      id: '2',
-      userName: 'David K.',
-      rating: 4,
-      comment: 'Great hotel with excellent amenities. The pool area is beautiful and the restaurant serves authentic Ethiopian cuisine. Room was clean and comfortable.',
-      date: '2024-01-10',
-      helpful: 8
-    },
-    {
-      id: '3',
-      userName: 'Maria L.',
-      rating: 5,
-      comment: 'Perfect location near Bole Airport. The shuttle service was punctual and the rooms are modern and spacious. Will definitely stay here again!',
-      date: '2024-01-05',
-      helpful: 15
-    }
-  ]);
+  const { user, isAuthenticated } = useAuth();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [newReview, setNewReview] = useState({
     rating: 0,
     comment: ''
   });
 
-  const hotel = {
-    id: id,
-    name: 'Ethiopian Skylight Hotel',
-    averageRating: 4.8,
-    totalReviews: reviews.length
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
 
-  const handleSubmitReview = (e: React.FormEvent) => {
+      try {
+        const hotelId = parseInt(id);
+        const hotelData = await apiService.getHotel(hotelId);
+        setHotel(hotelData);
+
+        const allReviews = await apiService.getReviews();
+        const hotelReviews = allReviews.filter((review: any) => review.hotel_id === hotelId);
+        setReviews(hotelReviews);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newReview.rating && newReview.comment && isAuthenticated) {
-      const review: Review = {
-        id: Date.now().toString(),
-        userName: 'You',
-        rating: newReview.rating,
-        comment: newReview.comment,
-        date: new Date().toISOString().split('T')[0],
-        helpful: 0
-      };
-      
-      setReviews(prev => [review, ...prev]);
-      setNewReview({ rating: 0, comment: '' });
+    if (newReview.rating && newReview.comment && isAuthenticated && user && hotel) {
+      try {
+        const reviewData = {
+          rating: newReview.rating,
+          comment: newReview.comment,
+          user_id: user.id,
+          hotel_id: hotel.id
+        };
+
+        const createdReview = await apiService.createReview(reviewData);
+        setReviews(prev => [createdReview, ...prev]);
+        setNewReview({ rating: 0, comment: '' });
+      } catch (error) {
+        console.error('Error creating review:', error);
+      }
     }
   };
 
@@ -98,16 +104,18 @@ const Reviews: React.FC = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">{hotel.name}</h1>
-            <div className="flex items-center space-x-2 mt-2">
-              <div className="flex">
-                {renderStars(Math.floor(hotel.averageRating))}
+          {hotel && (
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">{hotel.name}</h1>
+              <div className="flex items-center space-x-2 mt-2">
+                <div className="flex">
+                  {renderStars(Math.floor(hotel.rating))}
+                </div>
+                <span className="font-medium text-lg">{hotel.rating}</span>
+                <span className="text-gray-600">({reviews.length} reviews)</span>
               </div>
-              <span className="font-medium text-lg">{hotel.averageRating}</span>
-              <span className="text-gray-600">({hotel.totalReviews} reviews)</span>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Write Review Section */}
@@ -172,26 +180,30 @@ const Reviews: React.FC = () => {
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <User className="h-6 w-6 text-emerald-600" />
                 </div>
-                
+
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h3 className="font-medium text-gray-800">{review.userName}</h3>
+                      <h3 className="font-medium text-gray-800">
+                        {review.user?.name || 'Anonymous User'}
+                      </h3>
                       <div className="flex items-center space-x-2 mt-1">
                         <div className="flex">
                           {renderStars(review.rating)}
                         </div>
-                        <span className="text-sm text-gray-600">{review.date}</span>
+                        <span className="text-sm text-gray-600">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <p className="text-gray-700 leading-relaxed mb-3">{review.comment}</p>
-                  
+
                   <div className="flex items-center space-x-4 text-sm">
                     <button className="flex items-center space-x-1 text-gray-600 hover:text-emerald-600 transition-colors">
                       <ThumbsUp className="h-4 w-4" />
-                      <span>Helpful ({review.helpful})</span>
+                      <span>Helpful</span>
                     </button>
                   </div>
                 </div>

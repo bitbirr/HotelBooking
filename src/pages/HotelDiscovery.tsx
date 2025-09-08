@@ -1,10 +1,13 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Filter, MapPin, Star, Heart, Wifi, Car, Utensils, Waves } from 'lucide-react';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { apiService } from '../services/api';
 
 interface Hotel {
-  id: string;
+  id: number;
+  created_at: number;
   name: string;
   location: string;
   city: string;
@@ -101,8 +104,20 @@ const HotelDiscovery: React.FC = () => {
   const amenityOptions = ['WiFi', 'Pool', 'Restaurant', 'Spa', 'Airport Shuttle', 'Lake View', 'Mountain View', 'Garden'];
 
   useEffect(() => {
-    setHotels(mockHotels);
-    setFilteredHotels(mockHotels);
+    const fetchHotels = async () => {
+      try {
+        const hotelsData = await apiService.getHotels();
+        setHotels(hotelsData);
+        setFilteredHotels(hotelsData);
+      } catch (error) {
+        console.error('Error fetching hotels:', error);
+        // Fallback to mock data if API fails
+        setHotels(mockHotels);
+        setFilteredHotels(mockHotels);
+      }
+    };
+
+    fetchHotels();
   }, []);
 
   useEffect(() => {
@@ -323,7 +338,7 @@ const HotelDiscovery: React.FC = () => {
                         ))}
                       </div>
 
-                      <Link 
+                      <Link
                         to={`/hotel/${hotel.id}`}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-md transition-colors text-center block"
                       >

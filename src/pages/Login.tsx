@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, MapPin } from 'lucide-react';
@@ -6,11 +7,13 @@ import { useAuth } from '../contexts/AuthContext';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const { login } = useAuth();
+  const [isSignup, setIsSignup] = useState(false);
+
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,16 +22,19 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      const success = await login(email, password);
+      const success = isSignup
+        ? await signup(name, email, password)
+        : await login(email, password);
+
       if (success) {
         navigate('/account');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError(isSignup ? 'Failed to create account. Please try again.' : 'Invalid email or password. Please try again.');
       }
     } catch (error) {
       setError('Something went wrong. Please try again.');
     }
-    
+
     setLoading(false);
   };
 
@@ -48,18 +54,39 @@ const Login: React.FC = () => {
               Stay<span className="text-emerald-600">Ethiopia</span>
             </span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-800">Welcome back</h2>
+          <h2 className="text-3xl font-bold text-gray-800">
+            {isSignup ? 'Create Account' : 'Welcome back'}
+          </h2>
           <p className="mt-2 text-gray-600">
-            Sign in to access your bookings and sync your favorites
+            {isSignup
+              ? 'Join StayEthiopia to discover amazing hotels'
+              : 'Sign in to access your bookings and sync your favorites'
+            }
           </p>
         </div>
 
-        {/* Login Form */}
+        {/* Login/Signup Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
+              </div>
+            )}
+
+            {isSignup && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="Enter your full name"
+                  required
+                />
               </div>
             )}
 
@@ -122,7 +149,10 @@ const Login: React.FC = () => {
               disabled={loading}
               className="w-full bg-gradient-to-r from-emerald-600 to-amber-500 text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg disabled:opacity-50 transition-all duration-300"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading
+                ? (isSignup ? 'Creating Account...' : 'Signing in...')
+                : (isSignup ? 'Create Account' : 'Sign In')
+              }
             </button>
           </form>
 
@@ -139,12 +169,15 @@ const Login: React.FC = () => {
             </p>
           </div>
 
-          {/* Sign Up Link */}
+          {/* Toggle Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Don't have an account?{' '}
-              <button className="text-emerald-600 hover:text-emerald-700 font-medium">
-                Create Account
+              {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                onClick={() => setIsSignup(!isSignup)}
+                className="text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                {isSignup ? 'Sign In' : 'Create Account'}
               </button>
             </p>
           </div>

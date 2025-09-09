@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const XANO_BASE_URL = 'https://x8ki-letl-twmt.n7.xano.io/api:DOHLSKFz';
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:8000/api';
 
 class ApiService {
   private getAuthHeaders(): HeadersInit {
@@ -8,7 +8,7 @@ class ApiService {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${XANO_BASE_URL}${endpoint}`;
+    const url = `${BASE_URL}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       ...this.getAuthHeaders(),
@@ -257,6 +257,18 @@ class ApiService {
     return this.request(`/customer_profile/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Auth endpoints
+  async login(email: string, password: string) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async getUserInfo() {
+    return this.request('/auth/me');
   }
 }
 

@@ -1,5 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { apiService } from '../services/api';
 
 interface FavoritesContextType {
   favorites: string[];
@@ -39,15 +42,8 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const syncFavoritesWithBackend = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      await fetch('/api/user/favorites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ favorites }),
-      });
+      // Sync favorites with backend - assuming POST to /favorite_hotel with favorites array
+      await apiService.createFavoriteHotel({ favorites });
     } catch (error) {
       console.error('Failed to sync favorites:', error);
     }

@@ -1,21 +1,24 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Filter, MapPin, Star, Heart, Wifi, Car, Utensils, Waves } from 'lucide-react';
-import { useFavorites } from '../contexts/FavoritesContext';
+import { Search, Filter, MapPin, Star } from 'lucide-react';
 import { apiService } from '../services/api';
 
 interface Hotel {
   id: number;
   created_at: number;
   name: string;
-  location: string;
   city: string;
-  rating: number;
-  price: number;
-  image: string;
-  amenities: string[];
+  location: string;
   description: string;
+  rating: number;
+  price_per_night: number;
+  is_active: boolean;
+  contact_phone: string;
+  contact_email: string;
+  website: string;
+  latitude: number;
+  longitude: number;
 }
 
 const HotelDiscovery: React.FC = () => {
@@ -25,95 +28,26 @@ const HotelDiscovery: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCity, setSelectedCity] = useState('');
   const [priceRange, setPriceRange] = useState([0, 500]);
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  
-  const { toggleFavorite, isFavorite } = useFavorites();
+  const [loading, setLoading] = useState(true);
 
-  // Mock hotel data - in real app, this would come from Xano API
-  const mockHotels: Hotel[] = [
-    {
-      id: '1',
-      name: 'Ethiopian Skylight Hotel',
-      location: 'Bole, Addis Ababa',
-      city: 'Addis Ababa',
-      rating: 4.8,
-      price: 120,
-      image: 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800',
-      amenities: ['WiFi', 'Pool', 'Restaurant', 'Spa', 'Airport Shuttle'],
-      description: 'Luxury hotel in the heart of Addis Ababa near Bole International Airport'
-    },
-    {
-      id: '2',
-      name: 'Blue Nile Resort',
-      location: 'Lake Tana, Bahir Dar',
-      city: 'Bahir Dar',
-      rating: 4.6,
-      price: 95,
-      image: 'https://images.pexels.com/photos/2506988/pexels-photo-2506988.jpeg?auto=compress&cs=tinysrgb&w=800',
-      amenities: ['WiFi', 'Lake View', 'Restaurant', 'Garden', 'Boat Tours'],
-      description: 'Beautiful lakeside resort with stunning views of Lake Tana'
-    },
-    {
-      id: '3',
-      name: 'Gondar Castle Lodge',
-      location: 'Historic District, Gondar',
-      city: 'Gondar',
-      rating: 4.4,
-      price: 85,
-      image: 'https://images.pexels.com/photos/1268871/pexels-photo-1268871.jpeg?auto=compress&cs=tinysrgb&w=800',
-      amenities: ['WiFi', 'Historic View', 'Restaurant', 'Tour Desk'],
-      description: 'Heritage hotel with views of the famous Gondar castles'
-    },
-    {
-      id: '4',
-      name: 'Axum Heritage Hotel',
-      location: 'Archaeological Zone, Axum',
-      city: 'Axum',
-      rating: 4.3,
-      price: 75,
-      image: 'https://images.pexels.com/photos/1268871/pexels-photo-1268871.jpeg?auto=compress&cs=tinysrgb&w=800',
-      amenities: ['WiFi', 'Restaurant', 'Cultural Tours', 'Garden'],
-      description: 'Experience ancient Axumite history in comfort'
-    },
-    {
-      id: '5',
-      name: 'Lalibela Mountain View',
-      location: 'Church Complex, Lalibela',
-      city: 'Lalibela',
-      rating: 4.5,
-      price: 110,
-      image: 'https://images.pexels.com/photos/2506988/pexels-photo-2506988.jpeg?auto=compress&cs=tinysrgb&w=800',
-      amenities: ['WiFi', 'Mountain View', 'Restaurant', 'Cultural Tours'],
-      description: 'Premium lodge near the famous rock-hewn churches'
-    },
-    {
-      id: '6',
-      name: 'Hawassa Lake Resort',
-      location: 'Lake Shore, Hawassa',
-      city: 'Hawassa',
-      rating: 4.2,
-      price: 90,
-      image: 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800',
-      amenities: ['WiFi', 'Lake View', 'Pool', 'Restaurant', 'Spa'],
-      description: 'Relaxing lakeside retreat in the Rift Valley'
-    }
-  ];
+
 
   const cities = ['All Cities', 'Addis Ababa', 'Bahir Dar', 'Gondar', 'Axum', 'Lalibela', 'Hawassa'];
-  const amenityOptions = ['WiFi', 'Pool', 'Restaurant', 'Spa', 'Airport Shuttle', 'Lake View', 'Mountain View', 'Garden'];
 
   useEffect(() => {
     const fetchHotels = async () => {
+      setLoading(true);
       try {
         const hotelsData = await apiService.getHotels();
         setHotels(hotelsData);
         setFilteredHotels(hotelsData);
       } catch (error) {
         console.error('Error fetching hotels:', error);
-        // Fallback to mock data if API fails
-        setHotels(mockHotels);
-        setFilteredHotels(mockHotels);
+        setHotels([]);
+        setFilteredHotels([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -122,7 +56,7 @@ const HotelDiscovery: React.FC = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, selectedCity, priceRange, selectedAmenities, hotels]);
+  }, [searchQuery, selectedCity, priceRange, hotels]);
 
   const applyFilters = () => {
     let filtered = hotels;
@@ -142,16 +76,9 @@ const HotelDiscovery: React.FC = () => {
     }
 
     // Price range filter
-    filtered = filtered.filter(hotel => 
-      hotel.price >= priceRange[0] && hotel.price <= priceRange[1]
+    filtered = filtered.filter(hotel =>
+      hotel.price_per_night >= priceRange[0] && hotel.price_per_night <= priceRange[1]
     );
-
-    // Amenities filter
-    if (selectedAmenities.length > 0) {
-      filtered = filtered.filter(hotel =>
-        selectedAmenities.every(amenity => hotel.amenities.includes(amenity))
-      );
-    }
 
     setFilteredHotels(filtered);
   };
@@ -161,23 +88,7 @@ const HotelDiscovery: React.FC = () => {
     setSearchParams(searchQuery ? { search: searchQuery } : {});
   };
 
-  const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities(prev => 
-      prev.includes(amenity) 
-        ? prev.filter(a => a !== amenity)
-        : [...prev, amenity]
-    );
-  };
 
-  const getAmenityIcon = (amenity: string) => {
-    switch (amenity) {
-      case 'WiFi': return <Wifi className="h-4 w-4" />;
-      case 'Pool': return <Waves className="h-4 w-4" />;
-      case 'Restaurant': return <Utensils className="h-4 w-4" />;
-      case 'Airport Shuttle': return <Car className="h-4 w-4" />;
-      default: return null;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -251,23 +162,6 @@ const HotelDiscovery: React.FC = () => {
                 />
               </div>
 
-              {/* Amenities */}
-              <div>
-                <label className="block font-medium text-gray-700 mb-2">Amenities</label>
-                <div className="space-y-2">
-                  {amenityOptions.map(amenity => (
-                    <label key={amenity} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedAmenities.includes(amenity)}
-                        onChange={() => toggleAmenity(amenity)}
-                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span className="text-sm">{amenity}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -279,92 +173,74 @@ const HotelDiscovery: React.FC = () => {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredHotels.map(hotel => (
-                <div key={hotel.id} className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-                  <div className="flex">
-                    <div className="w-48 h-48 relative">
-                      <img 
-                        src={hotel.image} 
-                        alt={hotel.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => toggleFavorite(hotel.id)}
-                        className="absolute top-3 right-3 p-2 bg-white bg-opacity-80 rounded-full hover:bg-white transition-colors"
-                      >
-                        <Heart 
-                          className={`h-5 w-5 ${
-                            isFavorite(hotel.id) ? 'text-red-500 fill-current' : 'text-gray-600'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 p-6">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-semibold text-gray-800">{hotel.name}</h3>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-emerald-600">${hotel.price}</div>
-                          <div className="text-sm text-gray-600">per night</div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 text-gray-600 mb-2">
-                        <MapPin className="h-4 w-4" />
-                        <span className="text-sm">{hotel.location}</span>
-                      </div>
-
-                      <div className="flex items-center space-x-1 mb-3">
-                        <div className="flex text-amber-400">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              className={`h-4 w-4 ${i < Math.floor(hotel.rating) ? 'fill-current' : ''}`} 
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600 ml-1">{hotel.rating}</span>
-                      </div>
-
-                      <p className="text-gray-600 text-sm mb-4">{hotel.description}</p>
-
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {hotel.amenities.slice(0, 4).map(amenity => (
-                          <span key={amenity} className="flex items-center space-x-1 bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs">
-                            {getAmenityIcon(amenity)}
-                            <span>{amenity}</span>
-                          </span>
-                        ))}
-                      </div>
-
-                      <Link
-                        to={`/hotel/${hotel.id}`}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-md transition-colors text-center block"
-                      >
-                        View Details & Book
-                      </Link>
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="text-gray-500 text-lg">Loading hotels...</div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {filteredHotels.map(hotel => (
+                <div key={hotel.id} className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow p-6">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xl font-semibold text-gray-800">{hotel.name}</h3>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-emerald-600">${hotel.price_per_night}</div>
+                      <div className="text-sm text-gray-600">per night</div>
                     </div>
                   </div>
+
+                  <div className="flex items-center space-x-1 text-gray-600 mb-2">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-sm">{hotel.location}, {hotel.city}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-1 mb-3">
+                    <div className="flex text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${i < Math.floor(hotel.rating / 1000) ? 'fill-current' : ''}`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-600 ml-1">{(hotel.rating / 1000).toFixed(1)}</span>
+                  </div>
+
+                  <p className="text-gray-600 text-sm mb-4">{hotel.description}</p>
+
+                  <div className="text-sm text-gray-600 mb-4">
+                    <div><strong>Phone:</strong> {hotel.contact_phone}</div>
+                    <div><strong>Email:</strong> {hotel.contact_email}</div>
+                    <div><strong>Website:</strong> <a href={hotel.website} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">{hotel.website}</a></div>
+                  </div>
+
+                  <Link
+                    to={`/hotel/${hotel.id}`}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-md transition-colors text-center block"
+                  >
+                    View Details & Book
+                  </Link>
                 </div>
               ))}
             </div>
 
-            {filteredHotels.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-gray-500 text-lg mb-4">No hotels found matching your criteria</div>
-                <button 
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCity('');
-                    setPriceRange([0, 500]);
-                    setSelectedAmenities([]);
-                  }}
-                  className="text-emerald-600 hover:text-emerald-700 font-medium"
-                >
-                  Clear all filters
-                </button>
-              </div>
+                {filteredHotels.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-500 text-lg mb-4">No hotels found matching your criteria</div>
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCity('');
+                        setPriceRange([0, 500]);
+                      }}
+                      className="text-emerald-600 hover:text-emerald-700 font-medium"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

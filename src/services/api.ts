@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const XANO_BASE_URL = 'https://x8ki-letl-twmt.n7.xano.io/api:DOHLSKFz';
+const XANO_BASE_URL = import.meta.env.VITE_XANO_API_BASE;
 
 class ApiService {
   private getAuthHeaders(): HeadersInit {
@@ -226,6 +226,35 @@ class ApiService {
 
   async deleteAvailabilityCalendar(id: number) {
     return this.request(`/availability_calendar/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Favorite Hotel endpoints
+  async getFavoriteHotels() {
+    return this.request('/favorite_hotel');
+  }
+
+  async getFavoriteHotel(id: number) {
+    return this.request(`/favorite_hotel/${id}`);
+  }
+
+  async createFavoriteHotel(data: any) {
+    return this.request('/favorite_hotel', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateFavoriteHotel(id: number, data: any) {
+    return this.request(`/favorite_hotel/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFavoriteHotel(id: number) {
+    return this.request(`/favorite_hotel/${id}`, {
       method: 'DELETE',
     });
   }

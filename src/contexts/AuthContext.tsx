@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/signup', {
+      const response = await fetch('http://localhost:8000/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('authToken', token);
 
         // Fetch user details after signup
-        const userResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/me', {
+        const userResponse = await fetch('http://localhost:8000/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
 

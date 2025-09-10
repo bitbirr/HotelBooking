@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC"
+      "url": "http://localhost:8000"
     }
   ],
   "components": {

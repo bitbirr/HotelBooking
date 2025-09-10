@@ -43,21 +43,27 @@ const Navbar: React.FC = () => {
             </Link>
             
             {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <Link 
-                  to="/account" 
-                  className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  <User className="h-4 w-4" />
-                  <span>{user?.name || 'Account'}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
+               <div className="flex items-center space-x-4">
+                 <Link
+                   to="/account"
+                   className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                 >
+                   <User className="h-4 w-4" />
+                   <span>{user?.name || 'Account'}</span>
+                 </Link>
+                 <Link
+                   to="/admin"
+                   className="text-gray-700 hover:text-emerald-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                 >
+                   Admin
+                 </Link>
+                 <button
+                   onClick={handleLogout}
+                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                 >
+                   Logout
+                 </button>
+               </div>
             ) : (
               <Link 
                 to="/login"
@@ -98,12 +104,19 @@ const Navbar: React.FC = () => {
             </Link>
             {isAuthenticated ? (
               <>
-                <Link 
-                  to="/account" 
+                <Link
+                  to="/account"
                   className="block text-gray-700 hover:text-emerald-600 px-3 py-2 rounded-md text-base font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Account
+                </Link>
+                <Link
+                  to="/admin"
+                  className="block text-gray-700 hover:text-emerald-600 px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Admin
                 </Link>
                 <button
                   onClick={() => {

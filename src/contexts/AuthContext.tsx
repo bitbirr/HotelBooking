@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiService } from '../services/api';
 
 interface User {
   id: number;
@@ -34,16 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (token) {
       // Verify token and fetch fresh user data
-      fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          } else {
-            throw new Error('Invalid token');
-          }
-        })
+      apiService.getUserInfo()
         .then(userData => {
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
@@ -57,30 +49,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      const data = await apiService.login(email, password);
+      const token = data.authToken;
+      localStorage.setItem('authToken', token);
 
-      if (response.ok) {
-        const data = await response.json();
-        const token = data.authToken;
-        localStorage.setItem('authToken', token);
-
-        // Fetch user details after login
-        const userResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/me', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          return true;
-        }
-      }
-      return false;
+      // Fetch user details after login
+      const userData = await apiService.getUserInfo();
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -89,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/signup', {
+      const response = await fetch('http://localhost:8000/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -101,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('authToken', token);
 
         // Fetch user details after signup
-        const userResponse = await fetch('https://x8ki-letl-twmt.n7.xano.io/api:tnSst2CC/auth/me', {
+        const userResponse = await fetch('http://localhost:8000/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
 
